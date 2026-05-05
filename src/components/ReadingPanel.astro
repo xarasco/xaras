@@ -1,0 +1,19 @@
+---
+import { SITE } from '@/lib/site';
+---
+
+<section>
+  <div class="panel-label">Currently reading</div>
+  <div class="reading-list">
+    {
+      SITE.reading.map((b) => (
+        <div>
+          <div class="book-title">{b.title}</div>
+          <div class="book-byline">
+            {b.author} · <span class="book-kind">{b.kind}</span>
+          </div>
+        </div>
+      ))
+    }
+  </div>
+</section>

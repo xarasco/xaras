@@ -1,0 +1,29 @@
+---
+import { SITE } from '@/lib/site';
+
+interface Props {
+  variant?: 'default' | 'post';
+}
+
+const { variant = 'default' } = Astro.props;
+const path = Astro.url.pathname;
+---
+
+<header class="site-header">
+  <a href="/" class="brand">{SITE.name}</a>
+  {
+    variant === 'post' ? (
+      <a href="/" style="font-family: var(--mono); font-size: 12px; color: var(--dim);">
+        ← logbook
+      </a>
+    ) : (
+      <nav>
+        {SITE.nav.map((item) => (
+          <a href={item.href} aria-current={path === item.href ? 'page' : undefined}>
+            {item.label}
+          </a>
+        ))}
+      </nav>
+    )
+  }
+</header>

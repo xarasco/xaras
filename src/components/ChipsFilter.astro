@@ -1,0 +1,49 @@
+---
+import { KIND_TAGS, LENS_TAGS } from '@/lib/classify';
+
+interface Counts {
+  total: number;
+  byKind: Record<string, number>;
+  byLens: Record<string, number>;
+}
+
+interface Props {
+  counts: Counts;
+  activeKind?: string;
+  activeLens?: string | null;
+}
+
+const { counts, activeKind = 'all', activeLens = null } = Astro.props;
+
+const kindRow = [
+  { l: 'all', n: counts.total },
+  ...KIND_TAGS.map((k) => ({ l: k, n: counts.byKind[k] ?? 0 })),
+];
+
+const lensRow = LENS_TAGS.map((k) => ({ l: k, n: counts.byLens[k] ?? 0 }));
+---
+
+<div class="chip-filter">
+  <div class="chip-row">
+    <span class="row-label">kind</span>
+    {
+      kindRow.map((k) => (
+        <button type="button" class="chip" aria-pressed={k.l === activeKind ? 'true' : 'false'}>
+          {k.l}
+          <span class="count">{k.n}</span>
+        </button>
+      ))
+    }
+  </div>
+  <div class="chip-row">
+    <span class="row-label">lens</span>
+    {
+      lensRow.map((k) => (
+        <button type="button" class="chip" aria-pressed={k.l === activeLens ? 'true' : 'false'}>
+          {k.l}
+          <span class="count">{k.n}</span>
+        </button>
+      ))
+    }
+  </div>
+</div>

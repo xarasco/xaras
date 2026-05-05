@@ -1,0 +1,59 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import SiteHeader from '@/components/SiteHeader.astro';
+import ChipsFilter from '@/components/ChipsFilter.astro';
+import EntryRow from '@/components/EntryRow.astro';
+import NowPanel from '@/components/NowPanel.astro';
+import ReadingPanel from '@/components/ReadingPanel.astro';
+import { SITE } from '@/lib/site';
+import { classify, KIND_TAGS, LENS_TAGS } from '@/lib/classify';
+
+const posts = (await getCollection('blog', ({ data }) => !data.draft)).sort(
+  (a, b) => b.data.date.getTime() - a.data.date.getTime(),
+);
+
+const counts = {
+  total: posts.length,
+  byKind: Object.fromEntries(KIND_TAGS.map((k) => [k, 0])) as Record<string, number>,
+  byLens: Object.fromEntries(LENS_TAGS.map((k) => [k, 0])) as Record<string, number>,
+};
+for (const p of posts) {
+  const { kind, lenses } = classify(p.data.tags);
+  counts.byKind[kind] = (counts.byKind[kind] ?? 0) + 1;
+  for (const l of lenses) counts.byLens[l] = (counts.byLens[l] ?? 0) + 1;
+}
+---
+
+<BaseLayout description={SITE.hero.blurb}>
+  <main class="page">
+    <SiteHeader />
+
+    <section class="hero">
+      <h1>
+        {SITE.hero.line1}<br />
+        <span class="quiet">{SITE.hero.line2}</span>
+      </h1>
+      <p>{SITE.hero.blurb}</p>
+    </section>
+
+    <div class="logbook-grid">
+      <section class="logbook">
+        <div class="filters">
+          <ChipsFilter counts={counts} activeKind="all" />
+        </div>
+        <div class="entries">
+          {posts.map((p) => <EntryRow entry={p} />)}
+        </div>
+      </section>
+
+      <aside class="sidebar">
+        <NowPanel />
+        <ReadingPanel />
+        <div class="footer-meta">
+          {SITE.email} · github · rss
+        </div>
+      </aside>
+    </div>
+  </main>
+</BaseLayout>

@@ -1,0 +1,12 @@
+---
+import { SITE } from '@/lib/site';
+---
+
+<section>
+  <div class="panel-label">{SITE.now.title}</div>
+  <ul class="now-list">
+    {SITE.now.items.map((item) => (
+      <li><span class="marker">—</span>{item}</li>
+    ))}
+  </ul>
+</section>

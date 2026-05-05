@@ -1,0 +1,27 @@
+---
+import { classify, formatDate, readingTime } from '@/lib/classify';
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  entry: CollectionEntry<'blog'>;
+}
+
+const { entry } = Astro.props;
+const { kind, lenses } = classify(entry.data.tags);
+const rt = readingTime(entry.body);
+const href = `/posts/${entry.id}`;
+---
+
+<article class="entry">
+  <div class="date">{formatDate(entry.data.date)}</div>
+  <div>
+    <div class="meta">
+      <span class="kind-label">{kind}</span>
+      {lenses.length > 0 && <span class="meta-dot">·</span>}
+      {lenses.map((l) => <span class="lens-tag">{l}</span>)}
+    </div>
+    <a href={href} class="title">{entry.data.title}</a>
+    {entry.data.description && <p class="dek">{entry.data.description}</p>}
+  </div>
+  <div class="rt">{rt} min</div>
+</article>

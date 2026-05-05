@@ -1,0 +1,64 @@
+---
+import { getCollection, render } from 'astro:content';
+import type { CollectionEntry } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import SiteHeader from '@/components/SiteHeader.astro';
+import { classify, formatDate, readingTime } from '@/lib/classify';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('blog', ({ data }) => !data.draft);
+  const ascending = posts.sort((a, b) => a.data.date.getTime() - b.data.date.getTime());
+  const seqByKind: Record<string, number> = {};
+  return ascending.map((post) => {
+    const { kind } = classify(post.data.tags);
+    seqByKind[kind] = (seqByKind[kind] ?? 0) + 1;
+    return {
+      params: { slug: post.id },
+      props: { post, number: seqByKind[kind] },
+    };
+  });
+}
+
+interface Props {
+  post: CollectionEntry<'blog'>;
+  number: number;
+}
+
+const { post, number } = Astro.props;
+const { Content } = await render(post);
+const { kind, lenses } = classify(post.data.tags);
+const rt = readingTime(post.body);
+const rtLabel = `${rt} ${rt === 1 ? 'minute' : 'minutes'}`;
+---
+
+<BaseLayout title={post.data.title} description={post.data.description}>
+  <main class="page">
+    <SiteHeader variant="post" />
+
+    <div class="post-grid">
+      <aside class="post-aside">
+        <div class="label">Kind</div>
+        <div class="value kind">{kind}</div>
+
+        <div class="label">Lenses</div>
+        <div class="value">{lenses.join(' · ') || '—'}</div>
+
+        <div class="label">Date</div>
+        <div class="value tabular">{formatDate(post.data.date)}</div>
+
+        <div class="label">Reading</div>
+        <div class="value">{rtLabel}</div>
+      </aside>
+
+      <article>
+        <div class="post-eyebrow">{kind} № {number}</div>
+        <h1 class="post-title">{post.data.title}</h1>
+        {post.data.description && <p class="post-dek">{post.data.description}</p>}
+        <div class="post-body">
+          <Content />
+        </div>
+      </article>
+      <div></div>
+    </div>
+  </main>
+</BaseLayout>
