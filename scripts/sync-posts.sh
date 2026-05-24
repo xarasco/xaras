@@ -21,4 +21,18 @@ if [[ ! -d "$XARAS_REPO/.git" ]]; then
   exit 1
 fi
 
+# humanize_filename "my-cool-post.md" -> "My Cool Post"
+humanize_filename() {
+  local base="${1%.md}"
+  echo "$base" | tr -- '-_' '  ' | awk '{
+    for (i=1; i<=NF; i++) $i = toupper(substr($i,1,1)) substr($i,2)
+    print
+  }'
+}
+
+# has_tty: returns 0 if stdin is a tty (so we can prompt), 1 otherwise.
+has_tty() {
+  [[ -t 0 ]]
+}
+
 echo "sync-posts: scanning $NOTES_DIR"
