@@ -161,3 +161,42 @@ for src in "$NOTES_DIR"/*.md; do
   fi
 done
 shopt -u nullglob
+
+# Build commit message from tracking arrays and commit in the xaras repo.
+total_changes=$(( ${#added[@]} + ${#updated[@]} ))
+if (( total_changes == 0 )); then
+  exit 0
+fi
+
+# Comma-join helper.
+join_csv() {
+  local IFS=','
+  echo "$*"
+}
+
+msg_lines=("blog: sync ${total_changes} post(s) from notes" "")
+if (( ${#added[@]} > 0 )); then
+  msg_lines+=("- add: $(join_csv "${added[@]}" | sed 's/,/, /g')")
+fi
+if (( ${#updated[@]} > 0 )); then
+  msg_lines+=("- update: $(join_csv "${updated[@]}" | sed 's/,/, /g')")
+fi
+commit_msg="$(printf '%s\n' "${msg_lines[@]}")"
+
+cd "$XARAS_REPO" || { echo "sync-posts: cannot cd to $XARAS_REPO" >&2; exit 1; }
+
+# Only stage the blog directory — don't sweep up unrelated changes.
+git add src/content/blog/
+
+# If nothing actually staged (e.g., user already committed manually), skip.
+if git diff --cached --quiet; then
+  echo "sync-posts: nothing staged after add; skipping commit"
+  exit 0
+fi
+
+if ! git commit -m "$commit_msg"; then
+  echo "sync-posts: git commit failed; changes left staged" >&2
+  exit 0   # don't fail the hook
+fi
+
+echo "sync-posts: committed $total_changes change(s)"
