@@ -114,3 +114,50 @@ EOF
 }
 
 echo "sync-posts: scanning $NOTES_DIR"
+
+added=()
+updated=()
+skipped_no_tty=()
+skipped_malformed=()
+
+shopt -s nullglob
+for src in "$NOTES_DIR"/*.md; do
+  filename="$(basename "$src")"
+  dest="$BLOG_DIR/$filename"
+
+  if [[ ! -e "$dest" ]]; then
+    # New post.
+    if ! has_tty; then
+      echo "[skip-new] $filename (no TTY for prompts)" >&2
+      skipped_no_tty+=("$filename")
+      continue
+    fi
+    fm="$(prompt_frontmatter "$filename")"
+    {
+      echo "$fm"
+      cat "$src"
+    } > "$dest"
+    echo "[add] $filename"
+    added+=("$filename")
+  else
+    # Existing post — sync body if different.
+    if ! existing_fm="$(extract_blog_frontmatter "$dest")"; then
+      echo "[skip-malformed] $filename" >&2
+      skipped_malformed+=("$filename")
+      continue
+    fi
+    existing_body="$(extract_blog_body "$dest")"
+    new_body="$(cat "$src")"
+    # Trim trailing whitespace for comparison.
+    if [[ "$(printf '%s' "$existing_body")" == "$(printf '%s' "$new_body")" ]]; then
+      continue  # identical, skip silently
+    fi
+    {
+      echo "$existing_fm"
+      echo "$new_body"
+    } > "$dest"
+    echo "[update] $filename"
+    updated+=("$filename")
+  fi
+done
+shopt -u nullglob
