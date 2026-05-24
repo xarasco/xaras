@@ -64,4 +64,53 @@ extract_blog_frontmatter() {
   ' "$path"
 }
 
+# prompt_frontmatter <filename>
+# Prints a complete YAML frontmatter block (including --- delimiters) to stdout.
+# Reads interactively from /dev/tty so it works inside hook contexts that have
+# a controlling tty but redirected stdin.
+prompt_frontmatter() {
+  local filename="$1"
+  local slug="${filename%.md}"
+  local default_title
+  default_title="$(humanize_filename "$filename")"
+
+  local title description tags_raw tags_yaml today
+  today="$(date +%Y-%m-%d)"
+
+  printf "\nNew post: %s\n" "$filename" >&2
+  printf "  title [%s]: " "$default_title" >&2
+  IFS= read -r title </dev/tty
+  [[ -z "$title" ]] && title="$default_title"
+
+  printf "  description: " >&2
+  IFS= read -r description </dev/tty
+  while [[ -z "$description" ]]; do
+    printf "  description (required): " >&2
+    IFS= read -r description </dev/tty
+  done
+
+  printf "  tags (comma-separated, optional): " >&2
+  IFS= read -r tags_raw </dev/tty
+
+  if [[ -z "$tags_raw" ]]; then
+    tags_yaml="[]"
+  else
+    # "foo, bar, baz" -> "[foo, bar, baz]" (no quotes — matches existing style)
+    local trimmed
+    trimmed="$(echo "$tags_raw" | sed 's/[[:space:]]*,[[:space:]]*/, /g; s/^[[:space:]]*//; s/[[:space:]]*$//')"
+    tags_yaml="[$trimmed]"
+  fi
+
+  cat <<EOF
+---
+title: $title
+date: $today
+draft: false
+slug: $slug
+tags: $tags_yaml
+description: $description
+---
+EOF
+}
+
 echo "sync-posts: scanning $NOTES_DIR"
