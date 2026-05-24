@@ -35,4 +35,33 @@ has_tty() {
   [[ -t 0 ]]
 }
 
+# extract_blog_body <path>
+# Prints the body of a blog file (everything after the closing --- of the
+# YAML frontmatter). If the file has no parseable frontmatter, returns 1
+# and prints nothing.
+extract_blog_body() {
+  local path="$1"
+  awk '
+    BEGIN { state = 0 }              # 0=before, 1=in fm, 2=after
+    NR == 1 && /^---[[:space:]]*$/ { state = 1; next }
+    state == 1 && /^---[[:space:]]*$/ { state = 2; next }
+    state == 2 { print }
+    END { exit (state == 2 ? 0 : 1) }
+  ' "$path"
+}
+
+# extract_blog_frontmatter <path>
+# Prints the frontmatter block including the opening and closing --- lines.
+# Returns 1 if no frontmatter found.
+extract_blog_frontmatter() {
+  local path="$1"
+  awk '
+    BEGIN { state = 0 }
+    NR == 1 && /^---[[:space:]]*$/ { print; state = 1; next }
+    state == 1 { print }
+    state == 1 && /^---[[:space:]]*$/ { state = 2; exit }
+    END { exit (state == 2 ? 0 : 1) }
+  ' "$path"
+}
+
 echo "sync-posts: scanning $NOTES_DIR"
