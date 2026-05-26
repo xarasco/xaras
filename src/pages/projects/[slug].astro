@@ -1,0 +1,83 @@
+---
+import { getCollection, render } from 'astro:content';
+import type { CollectionEntry } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import SiteHeader from '@/components/SiteHeader.astro';
+import { formatDate } from '@/lib/classify';
+
+export async function getStaticPaths() {
+  const projects = await getCollection('projects', ({ data }) => !data.draft);
+  return projects.map((project) => ({
+    params: { slug: project.id },
+    props: { project },
+  }));
+}
+
+interface Props {
+  project: CollectionEntry<'projects'>;
+}
+
+const { project } = Astro.props;
+const { Content } = await render(project);
+const { title, description, status, date, url, repo, links, tags } = project.data;
+---
+
+<BaseLayout title={title} description={description}>
+  <main class="page">
+    <SiteHeader variant="post" />
+
+    <div class="post-grid">
+      <aside class="post-aside">
+        <div class="label">Status</div>
+        <div class="value kind">{status}</div>
+
+        <div class="label">Started</div>
+        <div class="value tabular">{formatDate(date)}</div>
+
+        {tags && tags.length > 0 && (
+          <>
+            <div class="label">Tags</div>
+            <div class="value">{tags.join(' · ')}</div>
+          </>
+        )}
+
+        {(url || repo || (links && links.length > 0)) && (
+          <>
+            <div class="label">Links</div>
+            <div class="value project-aside-links">
+              {url && <a href={url} target="_blank" rel="noopener">site ↗</a>}
+              {repo && <a href={repo} target="_blank" rel="noopener">repo ↗</a>}
+              {links?.map((l) => (
+                <a href={l.url} target="_blank" rel="noopener">{l.label} ↗</a>
+              ))}
+            </div>
+          </>
+        )}
+      </aside>
+
+      <article>
+        <div class="post-eyebrow">project</div>
+        <h1 class="post-title">{title}</h1>
+        {description && <p class="post-dek">{description}</p>}
+        <div class="post-body">
+          <Content />
+        </div>
+      </article>
+      <div></div>
+    </div>
+  </main>
+</BaseLayout>
+
+<style>
+  .project-aside-links {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .project-aside-links a { color: var(--accent); }
+  .project-aside-links a:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+</style>

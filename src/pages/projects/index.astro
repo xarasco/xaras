@@ -1,0 +1,93 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import SiteHeader from '@/components/SiteHeader.astro';
+
+const projects = (await getCollection('projects', ({ data }) => !data.draft)).sort(
+  (a, b) => b.data.date.getTime() - a.data.date.getTime(),
+);
+
+const groups: Record<string, typeof projects> = { active: [], shipped: [], archived: [] };
+for (const p of projects) groups[p.data.status].push(p);
+---
+
+<BaseLayout title="projects" description="Things I'm building.">
+  <main class="page">
+    <SiteHeader />
+
+    <section class="hero">
+      <h1>Projects</h1>
+      <p>Things I'm building, have shipped, or have set down for now.</p>
+    </section>
+
+    <section class="projects-list">
+      {(['active', 'shipped', 'archived'] as const).map((status) =>
+        groups[status].length > 0 ? (
+          <div class="project-group">
+            <div class="panel-label">{status}</div>
+            {groups[status].map((p) => (
+              <article class="project-row">
+                <div>
+                  <a href={`/projects/${p.id}`} class="project-title">{p.data.title}</a>
+                  {p.data.description && <p class="dek">{p.data.description}</p>}
+                  {(p.data.url || p.data.repo || (p.data.links && p.data.links.length > 0)) && (
+                    <div class="project-links">
+                      {p.data.url && <a href={p.data.url} target="_blank" rel="noopener">site ↗</a>}
+                      {p.data.repo && <a href={p.data.repo} target="_blank" rel="noopener">repo ↗</a>}
+                      {p.data.links?.map((l) => (
+                        <a href={l.url} target="_blank" rel="noopener">{l.label} ↗</a>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : null
+      )}
+    </section>
+  </main>
+</BaseLayout>
+
+<style>
+  .projects-list { display: flex; flex-direction: column; gap: 40px; }
+  .project-group .panel-label { margin-bottom: 16px; }
+  .project-row {
+    padding: 18px 0;
+    border-top: 1px solid var(--rule);
+  }
+  .project-title {
+    font-family: var(--serif);
+    font-size: 24px;
+    line-height: 1.25;
+    letter-spacing: -0.005em;
+    color: var(--ink);
+  }
+  .project-title:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 4px;
+  }
+  .dek {
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--dim);
+    margin: 6px 0 0;
+    text-wrap: pretty;
+    max-width: 620px;
+  }
+  .project-links {
+    margin-top: 10px;
+    display: flex;
+    gap: 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+  .project-links a { color: var(--accent); }
+  .project-links a:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+</style>

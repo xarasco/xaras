@@ -1,0 +1,95 @@
+---
+import { getCollection, render } from 'astro:content';
+import type { CollectionEntry } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import SiteHeader from '@/components/SiteHeader.astro';
+
+export async function getStaticPaths() {
+  const books = await getCollection('bookshelf', ({ data }) => !data.draft);
+  return books
+    .filter((b) => b.body && b.body.trim().length > 0)
+    .map((book) => ({
+      params: { slug: book.id },
+      props: { book },
+    }));
+}
+
+interface Props {
+  book: CollectionEntry<'bookshelf'>;
+}
+
+const { book } = Astro.props;
+const { Content } = await render(book);
+
+const dateFmt = new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+const statusLabel: Record<string, string> = {
+  reading: 'Currently reading',
+  stalled: 'Stalled',
+  finished: 'Finished',
+  'want-to-read': 'Want to read',
+};
+---
+
+<BaseLayout title={book.data.title} description={`Notes on ${book.data.title} by ${book.data.author}`}>
+  <main class="page">
+    <SiteHeader variant="post" />
+
+    <div class="post-grid">
+      <aside class="post-aside">
+        <div class="label">Author</div>
+        <div class="value">{book.data.author}</div>
+
+        <div class="label">Kind</div>
+        <div class="value kind">{book.data.kind}</div>
+
+        <div class="label">Status</div>
+        <div class="value">{statusLabel[book.data.status] ?? book.data.status}</div>
+
+        {book.data.started && (
+          <>
+            <div class="label">Started</div>
+            <div class="value tabular">{dateFmt.format(book.data.started)}</div>
+          </>
+        )}
+
+        {book.data.finished && (
+          <>
+            <div class="label">Finished</div>
+            <div class="value tabular">{dateFmt.format(book.data.finished)}</div>
+          </>
+        )}
+
+        {book.data.rating && (
+          <>
+            <div class="label">Rating</div>
+            <div class="value rating">{'★'.repeat(book.data.rating)}</div>
+          </>
+        )}
+
+        {book.data.url && (
+          <>
+            <div class="label">Link</div>
+            <div class="value"><a href={book.data.url} target="_blank" rel="noopener">External</a></div>
+          </>
+        )}
+
+        <div class="label">&nbsp;</div>
+        <div class="value"><a href="/bookshelf">← Bookshelf</a></div>
+      </aside>
+
+      <article>
+        <div class="post-eyebrow">Bookshelf</div>
+        <h1 class="post-title">{book.data.title}</h1>
+        <p class="post-dek">{book.data.author}</p>
+        <div class="post-body">
+          <Content />
+        </div>
+      </article>
+      <div></div>
+    </div>
+  </main>
+</BaseLayout>
+
+<style>
+  .rating { color: var(--accent); }
+</style>

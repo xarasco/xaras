@@ -1,16 +1,23 @@
 ---
-import { SITE } from '@/lib/site';
+import { getCollection } from 'astro:content';
+
+const books = (await getCollection('bookshelf', ({ data }) => !data.draft && data.status === 'reading'))
+  .sort((a, b) => {
+    const at = a.data.started?.getTime() ?? 0;
+    const bt = b.data.started?.getTime() ?? 0;
+    return bt - at;
+  });
 ---
 
 <section>
   <div class="panel-label">Currently reading</div>
   <div class="reading-list">
     {
-      SITE.reading.map((b) => (
+      books.map((b) => (
         <div>
-          <div class="book-title">{b.title}</div>
+          <div class="book-title">{b.data.title}</div>
           <div class="book-byline">
-            {b.author} · <span class="book-kind">{b.kind}</span>
+            {b.data.author} · <span class="book-kind">{b.data.kind}</span>
           </div>
         </div>
       ))

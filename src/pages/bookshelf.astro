@@ -1,0 +1,148 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import SiteHeader from '@/components/SiteHeader.astro';
+
+const books = await getCollection('bookshelf', ({ data }) => !data.draft);
+
+function firstSentence(body: string | undefined): string | null {
+  if (!body) return null;
+  const trimmed = body.trim();
+  if (!trimmed) return null;
+  const firstPara = trimmed.split(/\n\s*\n/)[0].replace(/\s+/g, ' ').trim();
+  if (!firstPara) return null;
+  const match = firstPara.match(/^(.+?[.!?])(\s|$)/);
+  return match ? match[1] : firstPara;
+}
+
+type BookEntry = Awaited<ReturnType<typeof getCollection<'bookshelf'>>>[number];
+const withExcerpt = (b: BookEntry) => ({
+  entry: b,
+  excerpt: firstSentence(b.body),
+  hasReview: !!(b.body && b.body.trim().length > 0),
+});
+
+const groups = {
+  reading: books
+    .filter((b) => b.data.status === 'reading')
+    .sort((a, b) => (b.data.started?.getTime() ?? 0) - (a.data.started?.getTime() ?? 0))
+    .map(withExcerpt),
+  stalled: books
+    .filter((b) => b.data.status === 'stalled')
+    .sort((a, b) => (b.data.started?.getTime() ?? 0) - (a.data.started?.getTime() ?? 0))
+    .map(withExcerpt),
+  finished: books
+    .filter((b) => b.data.status === 'finished')
+    .sort((a, b) => (b.data.finished?.getTime() ?? 0) - (a.data.finished?.getTime() ?? 0))
+    .map(withExcerpt),
+  'want-to-read': books
+    .filter((b) => b.data.status === 'want-to-read')
+    .sort((a, b) => a.data.title.localeCompare(b.data.title))
+    .map(withExcerpt),
+};
+
+const sectionLabel = {
+  reading: 'Currently reading',
+  stalled: 'Stalled',
+  finished: 'Finished',
+  'want-to-read': 'Want to read',
+} as const;
+---
+
+<BaseLayout title="bookshelf" description="What I'm reading.">
+  <main class="page">
+    <SiteHeader />
+
+    <section class="hero">
+      <h1>Bookshelf</h1>
+      <p>What's open on the desk, what's been read, and what's queued up next.</p>
+    </section>
+
+    <section class="bookshelf-list">
+      {(['reading', 'stalled', 'finished', 'want-to-read'] as const).map((status) =>
+        groups[status].length > 0 ? (
+          <div class="book-group">
+            <div class="panel-label">{sectionLabel[status]}</div>
+            {groups[status].map(({ entry: b, excerpt, hasReview }) => {
+              const reviewHref = `/bookshelf/${b.id}`;
+              return (
+                <article class="book-row">
+                  <div class="book-title">
+                    {hasReview ? (
+                      <a href={reviewHref}>{b.data.title}</a>
+                    ) : b.data.url ? (
+                      <a href={b.data.url} target="_blank" rel="noopener">{b.data.title}</a>
+                    ) : (
+                      b.data.title
+                    )}
+                  </div>
+                  <div class="book-byline">
+                    {b.data.author} · <span class="book-kind">{b.data.kind}</span>
+                    {b.data.rating && <span class="rating"> · {'★'.repeat(b.data.rating)}</span>}
+                  </div>
+                  {excerpt && (
+                    <p class="book-excerpt">
+                      {excerpt}
+                      {hasReview && <> <a href={reviewHref} class="more">Read more →</a></>}
+                    </p>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+        ) : null
+      )}
+    </section>
+  </main>
+</BaseLayout>
+
+<style>
+  .bookshelf-list { display: flex; flex-direction: column; gap: 40px; }
+  .book-group .panel-label { margin-bottom: 16px; }
+  .book-row {
+    padding: 14px 0;
+    border-top: 1px solid var(--rule);
+  }
+  .book-title {
+    font-family: var(--serif);
+    font-size: 20px;
+    font-style: italic;
+    line-height: 1.3;
+    color: var(--ink);
+  }
+  .book-title a { color: inherit; }
+  .book-title a:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+  .book-byline {
+    font-size: 13px;
+    color: var(--dim);
+    margin-top: 4px;
+  }
+  .book-byline .book-kind {
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+  .book-byline .rating { color: var(--accent); }
+  .book-excerpt {
+    font-family: var(--serif);
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--ink);
+    margin: 8px 0 0;
+    max-width: 60ch;
+  }
+  .book-excerpt .more {
+    font-family: var(--sans, var(--serif));
+    font-size: 13px;
+    color: var(--dim);
+    white-space: nowrap;
+  }
+  .book-excerpt .more:hover {
+    color: var(--ink);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+</style>
