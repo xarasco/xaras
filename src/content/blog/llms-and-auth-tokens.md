@@ -4,7 +4,7 @@ date: 2026-05-25
 draft: false
 slug: llms-and-auth-tokens
 tags: [ai, work]
-description: where do all the tokens go
+description: just, why..
 ---
 # (not) putting PATs in llm messages
 
