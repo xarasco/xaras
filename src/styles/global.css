@@ -156,6 +156,7 @@ button { font: inherit; }
   padding: 18px 0;
   border-top: 1px solid var(--rule);
 }
+.entry[hidden] { display: none; }
 .entry .date {
   font-family: var(--mono);
   font-size: 12px;

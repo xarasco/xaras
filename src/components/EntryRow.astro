@@ -12,7 +12,7 @@ const rt = readingTime(entry.body);
 const href = `/posts/${entry.id}`;
 ---
 
-<article class="entry">
+<article class="entry" data-kind={kind} data-lenses={lenses.join(' ')}>
   <div class="date">{formatDate(entry.data.date)}</div>
   <div>
     <div class="meta">
